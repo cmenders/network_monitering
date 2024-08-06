@@ -1,5 +1,7 @@
 from scapy.all import sniff, TCP, IP
 
+captured_packets = []
+
 def packet_callback(packet):
     if IP in packet:
         ip_src = packet[IP].src
@@ -13,4 +15,8 @@ def packet_callback(packet):
 
 if __name__ == '__main__':
     print('Starting packet capture...')
-    sniff(prn=packet_callback, store=0)  # store=0 avoids storing packets in memory
+    try:
+        sniff(prn=packet_callback, store=0)  # store=0 avoids storing packets in memory
+    except KeyboardInterrupt:
+        wrpcap('captured_packets.pcap', captured_packets)
+        print('\nPackets saved to captured_packets.pcap')
