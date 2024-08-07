@@ -14,8 +14,11 @@ This project captures and analyzes network packets to detect suspicious activiti
 
 - Python 3.x
 - `scapy` library
+- Node.js and npm
 
 ## Setup
+
+### Backend Setup
 
 1. **Clone the repository:**
     ```bash
@@ -28,6 +31,29 @@ This project captures and analyzes network packets to detect suspicious activiti
     python -m venv venv
     source venv/bin/activate  
     pip install -r requirements.txt
+    ```
+
+3. **Create and apply migrations:**
+    ```bash
+    python manage.py makemigrations monitor
+    python manage.py migrate
+    ```
+
+4. **Start the Django server:**
+    ```bash
+    python manage.py runserver
+    ```
+
+### Frontend Setup
+
+1. **Navigate to the frontend directory:**
+    ``bash
+    cd network-monitor-frontend
+    ```
+
+2. **Start the React development server:**
+    ```bash
+    npm start
     ```
 
 ## Usage
