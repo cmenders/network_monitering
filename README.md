@@ -47,7 +47,7 @@ This project captures and analyzes network packets to detect suspicious activiti
 ### Frontend Setup
 
 1. **Navigate to the frontend directory:**
-    ``bash
+    ```bash
     cd network-monitor-frontend
     ```
 

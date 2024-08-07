@@ -5,3 +5,5 @@ djangorestframework==3.12.4
 django-cors-headers==3.7.0
 pytz==2021.1
 sqlparse==0.4.1
+django-rest-framework-gis==0.16 
+channels==3.0.3

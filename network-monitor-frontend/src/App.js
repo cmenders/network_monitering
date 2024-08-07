@@ -1,65 +1,131 @@
-import './App.css';
-
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
+import { Container, Grid, Paper, Typography, Button } from '@mui/material';
+import PacketsTable from './components/PacketsTable';
+import AlertsList from './components/AlertsList';
+import PacketHistogram from './components/PacketHistogram';
 
 const App = () => {
   const [packets, setPackets] = useState([]);
   const [alerts, setAlerts] = useState([]);
+  const [captureStarted, setCaptureStarted] = useState(false);
+  const [startTime, setStartTime] = useState(null);
+  const [timer, setTimer] = useState(0);
 
   useEffect(() => {
-    const fetchPackets = async () => {
-      const result = await axios.get('http://127.0.0.1:8000/api/packets/');
-      setPackets(result.data);
-    };
+    let socket;
+    if (captureStarted) {
+      const fetchInitialData = async () => {
+        try {
+          const packetsResult = await axios.get('http://127.0.0.1:8000/api/packets/');
+          setPackets(packetsResult.data.slice(-10));  // Show only the latest 10 packets
+          
+          const alertsResult = await axios.get('http://127.0.0.1:8000/api/alerts/');
+          setAlerts(alertsResult.data);
+        } catch (error) {
+          console.error('Error fetching initial data:', error);
+        }
+      };
 
-    const fetchAlerts = async () => {
-      const result = await axios.get('http://127.0.0.1:8000/api/alerts/');
-      setAlerts(result.data);
-    };
+      fetchInitialData();
 
-    fetchPackets();
-    fetchAlerts();
-  }, []);
+      socket = new WebSocket('ws://127.0.0.1:8001/ws/packets/');
+
+      socket.onopen = () => {
+        console.log('Connected to WebSocket');
+      };
+
+      socket.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        console.log('WebSocket message received:', data);  // Log incoming data
+        if (data.type === 'packet') {
+          setPackets((prevPackets) => {
+            const updatedPackets = [data.packet, ...prevPackets];
+            return updatedPackets.slice(0, 10);  // Keep only the latest 10 packets
+          });
+        }
+        if (data.type === 'alert') {
+          setAlerts((prevAlerts) => [data.alert, ...prevAlerts]);
+        }
+      };
+
+      socket.onclose = (event) => {
+        console.log('WebSocket connection closed', event);
+      };
+
+      const intervalId = setInterval(async () => {
+        try {
+          const result = await axios.get('http://127.0.0.1:8000/api/packets/');
+          setPackets(result.data.slice(-10));  // Show only the latest 10 packets
+        } catch (error) {
+          console.error('Error fetching packets:', error);
+        }
+      }, 1000);
+
+      // Update the timer every second
+      const timerInterval = setInterval(() => {
+        setTimer((prevTimer) => prevTimer + 1);
+      }, 1000);
+
+      return () => {
+        socket.close();
+        clearInterval(intervalId);
+        clearInterval(timerInterval);
+      };
+    }
+  }, [captureStarted]);
+
+  const handleStartCapture = async () => {
+    try {
+      await axios.get('http://127.0.0.1:8000/api/start_capture/');
+      setCaptureStarted(true);
+      setStartTime(Date.now());
+      setTimer(0);
+    } catch (error) {
+      console.error('Error starting capture:', error);
+    }
+  };
 
   return (
-    <div>
-      <h1>Network Monitor Dashboard</h1>
-      <h2>Captured Packets</h2>
-      <table>
-        <thead>
-          <tr>
-            <th>Timestamp</th>
-            <th>Source IP</th>
-            <th>Destination IP</th>
-            <th>Protocol</th>
-            <th>Source Port</th>
-            <th>Destination Port</th>
-            <th>Details</th>
-          </tr>
-        </thead>
-        <tbody>
-          {packets.map(packet => (
-            <tr key={packet.id}>
-              <td>{packet.timestamp}</td>
-              <td>{packet.src_ip}</td>
-              <td>{packet.dst_ip}</td>
-              <td>{packet.protocol}</td>
-              <td>{packet.src_port}</td>
-              <td>{packet.dst_port}</td>
-              <td>{packet.details}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-
-      <h2>Alerts</h2>
-      <ul>
-        {alerts.map(alert => (
-          <li key={alert.id}>{alert.timestamp} - {alert.message}</li>
-        ))}
-      </ul>
-    </div>
+    <Container>
+      <Typography variant="h2" gutterBottom>
+        Network Monitor Dashboard
+      </Typography>
+      <Button variant="contained" color="primary" onClick={handleStartCapture} disabled={captureStarted}>
+        Start Capture
+      </Button>
+      {captureStarted && (
+        <Typography variant="h6" gutterBottom style={{ float: 'right' }}>
+          Timer: {Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, '0')}
+        </Typography>
+      )}
+      <Grid container spacing={3}>
+        <Grid item xs={12}>
+          <Paper>
+            <Typography variant="h4" gutterBottom>
+              Captured Packets
+            </Typography>
+            <PacketsTable packets={packets} />
+          </Paper>
+        </Grid>
+        <Grid item xs={12}>
+          <Paper>
+            <Typography variant="h4" gutterBottom>
+              Packet Histogram
+            </Typography>
+            <PacketHistogram packets={packets} />
+          </Paper>
+        </Grid>
+        <Grid item xs={12}>
+          <Paper>
+            <Typography variant="h4" gutterBottom>
+              Alerts
+            </Typography>
+            <AlertsList alerts={alerts} />
+          </Paper>
+        </Grid>
+      </Grid>
+    </Container>
   );
 };
 
