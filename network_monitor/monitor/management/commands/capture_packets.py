@@ -1,3 +1,4 @@
+import threading
 import time
 from scapy.all import sniff, TCP, UDP, ICMP, DNS, ARP, IP
 from django.core.management.base import BaseCommand
@@ -66,4 +67,5 @@ class Command(BaseCommand):
                 self.stdout.write(f'Captured packet: {ip_src} -> {ip_dst}')
 
         # Sniff packets
-        sniff(prn=packet_callback, store=0, filter="tcp or udp or icmp or arp or port 53 or port 80 or port 443")
+        while getattr(threading.current_thread(), "do_run", True):
+            sniff(prn=packet_callback, store=0, filter="tcp or udp or icmp or arp or port 53 or port 80 or port 443", timeout=1)

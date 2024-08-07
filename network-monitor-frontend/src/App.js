@@ -7,6 +7,7 @@ import PacketHistogram from './components/PacketHistogram';
 
 const App = () => {
   const [packets, setPackets] = useState([]);
+  const [allPackets, setAllPackets] = useState([]); // For cumulative histogram
   const [alerts, setAlerts] = useState([]);
   const [captureStarted, setCaptureStarted] = useState(false);
   const [startTime, setStartTime] = useState(null);
@@ -19,6 +20,7 @@ const App = () => {
         try {
           const packetsResult = await axios.get('http://127.0.0.1:8000/api/packets/');
           setPackets(packetsResult.data.slice(-10));  // Show only the latest 10 packets
+          setAllPackets(packetsResult.data); // For cumulative histogram
           
           const alertsResult = await axios.get('http://127.0.0.1:8000/api/alerts/');
           setAlerts(alertsResult.data);
@@ -43,6 +45,7 @@ const App = () => {
             const updatedPackets = [data.packet, ...prevPackets];
             return updatedPackets.slice(0, 10);  // Keep only the latest 10 packets
           });
+          setAllPackets((prevPackets) => [data.packet, ...prevPackets]); // Cumulative histogram
         }
         if (data.type === 'alert') {
           setAlerts((prevAlerts) => [data.alert, ...prevAlerts]);
@@ -57,6 +60,7 @@ const App = () => {
         try {
           const result = await axios.get('http://127.0.0.1:8000/api/packets/');
           setPackets(result.data.slice(-10));  // Show only the latest 10 packets
+          setAllPackets(result.data); // For cumulative histogram
         } catch (error) {
           console.error('Error fetching packets:', error);
         }
@@ -76,23 +80,32 @@ const App = () => {
   }, [captureStarted]);
 
   const handleStartCapture = async () => {
-    try {
-      await axios.get('http://127.0.0.1:8000/api/start_capture/');
-      setCaptureStarted(true);
-      setStartTime(Date.now());
-      setTimer(0);
-    } catch (error) {
-      console.error('Error starting capture:', error);
+    if (captureStarted) {
+      try {
+        await axios.get('http://127.0.0.1:8000/api/stop_capture/');
+        setCaptureStarted(false);
+      } catch (error) {
+        console.error('Error stopping capture:', error);
+      }
+    } else {
+      try {
+        await axios.get('http://127.0.0.1:8000/api/start_capture/');
+        setCaptureStarted(true);
+        setStartTime(Date.now());
+        setTimer(0);
+      } catch (error) {
+        console.error('Error starting capture:', error);
+      }
     }
   };
-
+  
   return (
     <Container>
       <Typography variant="h2" gutterBottom>
         Network Monitor Dashboard
       </Typography>
-      <Button variant="contained" color="primary" onClick={handleStartCapture} disabled={captureStarted}>
-        Start Capture
+      <Button variant="contained" color="primary" onClick={handleStartCapture}>
+        {captureStarted ? 'Stop Capture' : 'Start Capture'}
       </Button>
       {captureStarted && (
         <Typography variant="h6" gutterBottom style={{ float: 'right' }}>
@@ -113,7 +126,7 @@ const App = () => {
             <Typography variant="h4" gutterBottom>
               Packet Histogram
             </Typography>
-            <PacketHistogram packets={packets} />
+            <PacketHistogram packets={allPackets} />
           </Paper>
         </Grid>
         <Grid item xs={12}>

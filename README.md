@@ -6,19 +6,23 @@ This project captures and analyzes network packets to detect suspicious activiti
 
 ## Features
 
-- **Packet Capturing:** Captures TCP, UDP, ICMP, DNS, HTTP/HTTPS, and ARP packets.
+<!-- - **Packet Capturing:** Captures TCP, UDP, ICMP, DNS, HTTP/HTTPS, and ARP packets.
 - **Traffic Analysis:** Detects port scanning, high volume traffic, and logs alerts.
-- **Verbose Mode:** Option to print detailed information about all captured packets.
+- **Verbose Mode:** Option to print detailed information about all captured packets. -->
+- Capture and display network packets in real-time
+- Start and stop packet capture from the frontend
+- Display a cumulative histogram of packet counts by destination port
+- Display a timer that starts when packet capture begins
 
 ## Requirements
 
 - Python 3.x
-- `scapy` library
-- Node.js and npm
+- Node.js 
+- npm (Node Package Manager)
 
 ## Setup
 
-### Backend Setup
+### Backend (Django)
 
 1. **Clone the repository:**
     ```bash
@@ -44,7 +48,7 @@ This project captures and analyzes network packets to detect suspicious activiti
     python manage.py runserver
     ```
 
-### Frontend Setup
+### Frontend (React)
 
 1. **Navigate to the frontend directory:**
     ```bash
@@ -58,25 +62,44 @@ This project captures and analyzes network packets to detect suspicious activiti
 
 ## Usage
 
-### Running the Packet Capture
+### Starting and Stopping Packet Capture:
 
-To start capturing packets and analyzing traffic, run the `main.py` script. 
+#### Start Packet Capture:
+- Navigate to the frontend in your browser (`http://localhost:3000).
+- Click the "Start Capture" button to begin capturing packets.
+- The packet capture will start, and the timer will display the elapsed time.
 
-#### Normal Mode (Non-Verbose)
+#### Stop Packet Capture:
+- Click the "Stop Capture" button to stop capturing packets.
+- The packet capture will stop, and the timer will freeze.
 
-This mode prints only alerts:
-```bash
-python main.py
-```
+### Viewing Packets and Alerts
 
-#### Verbose Mode
+- The dashboard displays the latest captured packets and alerts.
+- The histogram shows a cumulative count of packets by destination port.
 
-This mode prints all packets captured
-```bash
-python main.py -v
-```
+### Endpoints
 
-### Stopping the Packet Capture
+#### Start Capture
+- URL: /api/start_capture/
+- Method: GET
+- Description: Starts the packet capture.
 
-To stop the packet capture, press `Ctrl+C`. Captured packets will be saved to `captured_packets.pcap` and alerts will be saved to `alert_log.txt`
+#### Stop Capture
+- URL: /api/stop_capture/
+- Method: GET
+- Description: Stops the packet capture.
 
+### Dependencies
+
+#### Python Packages
+- Django
+- Django Channels
+- Django REST Framework
+- scapy
+
+#### Node.js Packages
+- react
+- react-dom
+- react-chartjs-2
+- chart.js
