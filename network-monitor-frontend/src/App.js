@@ -4,11 +4,13 @@ import { Container, Grid, Paper, Typography, Button } from '@mui/material';
 import PacketsTable from './components/PacketsTable';
 import AlertsList from './components/AlertsList';
 import PacketHistogram from './components/PacketHistogram';
+import HostnameCountsTable from './components/HostnameCountsTable'; // New component
 
 const App = () => {
   const [packets, setPackets] = useState([]);
   const [allPackets, setAllPackets] = useState([]); // For cumulative histogram
   const [alerts, setAlerts] = useState([]);
+  const [hostnameCounts, setHostnameCounts] = useState([]); // New state
   const [captureStarted, setCaptureStarted] = useState(false);
   const [startTime, setStartTime] = useState(null);
   const [timer, setTimer] = useState(0);
@@ -19,12 +21,18 @@ const App = () => {
     if (captureStarted) {
       const fetchInitialData = async () => {
         try {
-          const packetsResult = await axios.get('http://127.0.0.1:8000/api/packets/');
+          const packetsResult = await axios.get('http://127.0.0.1:8000/api/get_packets/');
+          console.log('Fetched packets:', packetsResult.data);
           setPackets(packetsResult.data.slice(-10).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));  // Show only the latest 10 packets sorted by timestamp
           setAllPackets(packetsResult.data); // For cumulative histogram
           
-          const alertsResult = await axios.get('http://127.0.0.1:8000/api/alerts/');
+          const alertsResult = await axios.get('http://127.0.0.1:8000/api/get_alerts/');
+          console.log('Fetched alerts:', alertsResult.data);
           setAlerts(alertsResult.data);
+
+          const hostnameCountsResult = await axios.get('http://127.0.0.1:8000/api/get_hostname_counts/');
+          console.log('Fetched hostname counts:', hostnameCountsResult.data);
+          setHostnameCounts(hostnameCountsResult.data);
         } catch (error) {
           console.error('Error fetching initial data:', error);
         }
@@ -49,7 +57,12 @@ const App = () => {
           setAllPackets((prevPackets) => [data.packet, ...prevPackets]); // Cumulative histogram
         }
         if (data.type === 'alerts') {
+          console.log('WebSocket alerts:', data.alerts);
           setAlerts(data.alerts);
+        }
+        if (data.type === 'hostname_counts') {  // New condition for hostname counts
+          console.log('Hostname counts:', data.hostname_counts);
+          setHostnameCounts(data.hostname_counts);
         }
       };
 
@@ -59,11 +72,28 @@ const App = () => {
 
       const intervalId = setInterval(async () => {
         try {
-          const result = await axios.get('http://127.0.0.1:8000/api/packets/');
+          const hostnameCountsResult = await axios.get('http://127.0.0.1:8000/api/get_hostname_counts/');
+          console.log('Interval fetched hostname counts:', hostnameCountsResult.data);
+          setHostnameCounts(hostnameCountsResult.data);
+        } catch (error) {
+          console.error('Error fetching hostname counts:', error);
+        }
+
+        try {
+          const result = await axios.get('http://127.0.0.1:8000/api/get_packets/');
+          console.log('Interval fetched packets:', result.data);
           setPackets(result.data.slice(-10).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));  // Show only the latest 10 packets sorted by timestamp
           setAllPackets(result.data); // For cumulative histogram
         } catch (error) {
           console.error('Error fetching packets:', error);
+        }
+
+        try {
+          const alertUpdate = await axios.get('http://127.0.0.1:8000/api/get_alerts/');
+          console.log('Interval fetched alerts:', alertUpdate.data);
+          setAlerts(alertUpdate.data);
+        } catch (error) {
+          console.error('Error fetching alerts:', error);
         }
       }, 1000);
 
@@ -138,6 +168,14 @@ const App = () => {
               Alerts
             </Typography>
             <AlertsList alerts={alerts} />
+          </Paper>
+        </Grid>
+        <Grid item xs={12}>  {/* New grid item for hostname counts */}
+          <Paper>
+            <Typography variant="h4" gutterBottom>
+              Hostname Counts
+            </Typography>
+            <HostnameCountsTable hostnameCounts={hostnameCounts} />
           </Paper>
         </Grid>
       </Grid>

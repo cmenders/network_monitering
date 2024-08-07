@@ -5,6 +5,10 @@ from django.core.management.base import BaseCommand
 from monitor.models import CapturedPacket, Alert
 from channels.layers import get_channel_layer
 from asgiref.sync import async_to_sync
+import socket
+import logging
+
+logger = logging.getLogger(__name__)
 
 class Command(BaseCommand):
     help = 'Capture network packets and store them in the database'
@@ -22,6 +26,13 @@ class Command(BaseCommand):
                 src_port = packet.sport if hasattr(packet, 'sport') else None
                 dst_port = packet.dport if hasattr(packet, 'dport') else None
                 details = str(packet.summary())
+
+                try:
+                    hostname = socket.gethostbyaddr(ip_dst)[0]
+                except socket.herror:
+                    hostname = ip_dst
+
+                # logger.info(f"Captured packet: {ip_src} -> {ip_dst} (hostname: {hostname})")
 
                 # Save packet to database
                 captured_packet = CapturedPacket.objects.create(
@@ -45,7 +56,8 @@ class Command(BaseCommand):
                             'protocol': protocol,
                             'src_port': src_port,
                             'dst_port': dst_port,
-                            'details': details
+                            'details': details,
+                            'hostname': hostname
                         }
                     }
                 )
@@ -66,7 +78,7 @@ class Command(BaseCommand):
                         }
                     )
 
-                self.stdout.write(f'Captured packet: {ip_src} -> {ip_dst}')
+                # self.stdout.write(f'Captured packet: {ip_src} -> {ip_dst}')
 
         # Sniff packets
         while getattr(threading.current_thread(), "do_run", True):

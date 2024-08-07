@@ -3,7 +3,7 @@ import React from 'react';
 import { Table, TableBody, TableCell, TableContainer, TableHead, TableRow, Paper } from '@mui/material';
 
 const PacketsTable = ({ packets }) => {
-  console.log('PacketsTable received packets:', packets);  // Log packets to verify data is passed
+  // console.log('PacketsTable received packets:', packets);  // Log packets to verify data is passed
 
   return (
     <TableContainer component={Paper}>
