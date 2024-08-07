@@ -12,6 +12,7 @@ const App = () => {
   const [captureStarted, setCaptureStarted] = useState(false);
   const [startTime, setStartTime] = useState(null);
   const [timer, setTimer] = useState(0);
+  const [timerInterval, setTimerInterval] = useState(null);
 
   useEffect(() => {
     let socket;
@@ -19,7 +20,7 @@ const App = () => {
       const fetchInitialData = async () => {
         try {
           const packetsResult = await axios.get('http://127.0.0.1:8000/api/packets/');
-          setPackets(packetsResult.data.slice(-10));  // Show only the latest 10 packets
+          setPackets(packetsResult.data.slice(-10).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));  // Show only the latest 10 packets sorted by timestamp
           setAllPackets(packetsResult.data); // For cumulative histogram
           
           const alertsResult = await axios.get('http://127.0.0.1:8000/api/alerts/');
@@ -42,13 +43,13 @@ const App = () => {
         console.log('WebSocket message received:', data);  // Log incoming data
         if (data.type === 'packet') {
           setPackets((prevPackets) => {
-            const updatedPackets = [data.packet, ...prevPackets];
-            return updatedPackets.slice(0, 10);  // Keep only the latest 10 packets
+            const updatedPackets = [data.packet, ...prevPackets].slice(0, 10).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+            return updatedPackets;  // Keep only the latest 10 packets sorted by timestamp
           });
           setAllPackets((prevPackets) => [data.packet, ...prevPackets]); // Cumulative histogram
         }
-        if (data.type === 'alert') {
-          setAlerts((prevAlerts) => [data.alert, ...prevAlerts]);
+        if (data.type === 'alerts') {
+          setAlerts(data.alerts);
         }
       };
 
@@ -59,7 +60,7 @@ const App = () => {
       const intervalId = setInterval(async () => {
         try {
           const result = await axios.get('http://127.0.0.1:8000/api/packets/');
-          setPackets(result.data.slice(-10));  // Show only the latest 10 packets
+          setPackets(result.data.slice(-10).sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp)));  // Show only the latest 10 packets sorted by timestamp
           setAllPackets(result.data); // For cumulative histogram
         } catch (error) {
           console.error('Error fetching packets:', error);
@@ -67,14 +68,15 @@ const App = () => {
       }, 1000);
 
       // Update the timer every second
-      const timerInterval = setInterval(() => {
+      const timerId = setInterval(() => {
         setTimer((prevTimer) => prevTimer + 1);
       }, 1000);
+      setTimerInterval(timerId);
 
       return () => {
         socket.close();
         clearInterval(intervalId);
-        clearInterval(timerInterval);
+        clearInterval(timerId);
       };
     }
   }, [captureStarted]);
@@ -84,6 +86,7 @@ const App = () => {
       try {
         await axios.get('http://127.0.0.1:8000/api/stop_capture/');
         setCaptureStarted(false);
+        clearInterval(timerInterval); // Stop the timer
       } catch (error) {
         console.error('Error stopping capture:', error);
       }
@@ -98,7 +101,7 @@ const App = () => {
       }
     }
   };
-  
+
   return (
     <Container>
       <Typography variant="h2" gutterBottom>
@@ -107,7 +110,7 @@ const App = () => {
       <Button variant="contained" color="primary" onClick={handleStartCapture}>
         {captureStarted ? 'Stop Capture' : 'Start Capture'}
       </Button>
-      {captureStarted && (
+      {startTime && (
         <Typography variant="h6" gutterBottom style={{ float: 'right' }}>
           Timer: {Math.floor(timer / 60)}:{(timer % 60).toString().padStart(2, '0')}
         </Typography>

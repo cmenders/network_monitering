@@ -51,15 +51,17 @@ class Command(BaseCommand):
                 )
 
                 # Example alert for high volume traffic (simplified for demonstration)
-                if protocol == 6 and packet[TCP].flags == 'S':
+                if protocol == 6 and packet[TCP].flags == 'S':  # Protocol 6 is TCP
                     alert = Alert.objects.create(message=f'SYN packet detected: {ip_src} -> {ip_dst}')
                     async_to_sync(channel_layer.group_send)(
                         'packets',
                         {
                             'type': 'send_alert',
                             'alert': {
+                                'src_ip': ip_src,
+                                'dst_ip': ip_dst,
                                 'timestamp': str(alert.timestamp),
-                                'message': alert.message
+                                'message': f'SYN packet detected: {ip_src} -> {ip_dst}'
                             }
                         }
                     )

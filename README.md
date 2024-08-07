@@ -2,7 +2,7 @@
 
 ## Overview
 
-This project captures and analyzes network packets to detect suspicious activities such as port scanning, high volume traffic (potential DoS/DDoS attacks), and other anomalies. It supports both verbose and non-verbose modes to either print all captured packets or only alerts.
+A network monitoring tool that captures network packets and displays them on a real-time dashboard. This project uses Django for the backend, Channels for WebSocket support, and React for the frontend.
 
 ## Features
 
